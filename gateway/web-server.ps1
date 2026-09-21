@@ -1,23 +1,48 @@
 $ErrorActionPreference="Stop"
 
 $web = Join-Path (Split-Path $PSScriptRoot -Parent) "web"
-$listener = [System.Net.HttpListener]::new()
 
-# v1011: localhost only - no http://+:8090/ and no URL ACL/admin requirement.
+# Pobierz aktualny adres IPv4 komputera w sieci lokalnej.
+$lanIp = $null
+try {
+    $lanIp = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop |
+        Where-Object {
+            $_.IPAddress -notlike "127.*" -and
+            $_.IPAddress -notlike "169.254.*" -and
+            $_.PrefixOrigin -ne "WellKnown"
+        } |
+        Sort-Object InterfaceMetric |
+        Select-Object -First 1 -ExpandProperty IPAddress
+} catch {}
+
+if (-not $lanIp) { $lanIp = "192.168.0.2" }
+
+$listener = [System.Net.HttpListener]::new()
 $listener.Prefixes.Add("http://127.0.0.1:8090/")
 
+# v1012: drugi prefix tylko dla konkretnego lokalnego IP.
+# Nie używamy http://+:8090/.
+$phoneEnabled = $false
 try {
+    $listener.Prefixes.Add("http://${lanIp}:8090/")
     $listener.Start()
+    $phoneEnabled = $true
 } catch {
-    Write-Host "Nie moge uruchomic lokalnego serwera 127.0.0.1:8090." -ForegroundColor Red
-    Write-Host $_.Exception.Message -ForegroundColor Red
-    exit 1
+    try { $listener.Close() } catch {}
+    $listener = [System.Net.HttpListener]::new()
+    $listener.Prefixes.Add("http://127.0.0.1:8090/")
+    $listener.Start()
 }
 
 Write-Host ""
-Write-Host "Kamera LIVE v1011" -ForegroundColor Cyan
-Write-Host "Serwer lokalny: DZIALA" -ForegroundColor Green
-Write-Host "Otworz: http://127.0.0.1:8090" -ForegroundColor Green
+Write-Host "Kamera LIVE v1012" -ForegroundColor Cyan
+Write-Host "PC: http://127.0.0.1:8090" -ForegroundColor Green
+if ($phoneEnabled) {
+    Write-Host "TELEFON: http://${lanIp}:8090" -ForegroundColor Green
+} else {
+    Write-Host "Telefon: Windows nie pozwolil jeszcze na nasluch przez LAN." -ForegroundColor Yellow
+    Write-Host "PC nadal dziala na 127.0.0.1:8090." -ForegroundColor Yellow
+}
 Write-Host ""
 
 $mime = @{
@@ -49,18 +74,14 @@ while ($listener.IsListening) {
                     $ctx.Response.OutputStream.Write($buf,0,$n)
                     $ctx.Response.OutputStream.Flush()
                 }
-            } catch {
-                # Browser closed/reconnected.
-            } finally {
+            } catch {} finally {
                 $input.Dispose()
                 $up.Dispose()
             }
-        }
-        else {
+        } else {
             if ($path -eq "/") { $path = "/index.html" }
             $relative = $path.TrimStart("/").Replace("/", [IO.Path]::DirectorySeparatorChar)
             $file = Join-Path $web $relative
-
             if ((Test-Path $file) -and -not (Get-Item $file).PSIsContainer) {
                 $bytes = [IO.File]::ReadAllBytes($file)
                 $ext = [IO.Path]::GetExtension($file).ToLower()
@@ -68,16 +89,13 @@ while ($listener.IsListening) {
                 $ctx.Response.Headers["Cache-Control"] = "no-store"
                 $ctx.Response.ContentLength64 = $bytes.Length
                 $ctx.Response.OutputStream.Write($bytes,0,$bytes.Length)
-            }
-            else {
+            } else {
                 $ctx.Response.StatusCode = 404
             }
         }
-    }
-    catch {
+    } catch {
         try { $ctx.Response.StatusCode = 502 } catch {}
-    }
-    finally {
+    } finally {
         try { $ctx.Response.OutputStream.Close() } catch {}
     }
 }
