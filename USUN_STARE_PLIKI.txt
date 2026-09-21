@@ -1,0 +1,10 @@
+USUN Z PROJEKTU - NIE SA JUZ UZYWANE:
+gateway/download-mediamtx.ps1
+gateway/mediamtx.template.yml
+gateway/start-gateway.ps1
+gateway/mediamtx.local.yml (jesli istnieje)
+
+DODATKOWO:
+Stare pliki index.html, css/, js/, manifest.webmanifest i sw.js w katalogu glownym
+nie sa uzywane przez v1005. Docelowy interfejs znajduje sie tylko w katalogu web/.
+Mozesz je usunac, aby nie mieszaly wersji.
