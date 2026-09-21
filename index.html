@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#081018">
+  <title>Kamera LIVE</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div><h1>KAMERA LIVE</h1><small>Podgląd zewnętrzny</small></div>
+      <div id="status" class="status offline"><i></i><span>OFFLINE</span></div>
+    </header>
+
+    <section class="viewer" id="viewer">
+      <video id="video" autoplay muted playsinline controls></video>
+      <img id="mjpeg" alt="Podgląd kamery">
+      <div id="empty" class="empty">
+        <div class="camera">◉</div>
+        <strong>Brak połączenia z kamerą</strong>
+        <span>Otwórz Ustawienia i podaj adres strumienia.</span>
+      </div>
+      <div class="live">● LIVE</div>
+    </section>
+
+    <nav>
+      <button id="reconnect">↻<span>LIVE</span></button>
+      <button id="fullscreen">⛶<span>Pełny ekran</span></button>
+      <button id="sound">🔇<span>Dźwięk</span></button>
+      <button id="settings">⚙<span>Ustawienia</span></button>
+    </nav>
+
+    <footer>v1001 • GitHub/PWA</footer>
+  </main>
+
+  <dialog id="settingsDialog">
+    <form method="dialog">
+      <h2>Ustawienia kamery</h2>
+      <label>Typ strumienia
+        <select id="streamType">
+          <option value="hls">HLS (.m3u8)</option>
+          <option value="mjpeg">MJPEG / obraz HTTP</option>
+          <option value="direct">MP4 / WebM / bezpośredni URL</option>
+        </select>
+      </label>
+      <label>Adres strumienia
+        <input id="streamUrl" type="url" placeholder="https://...">
+      </label>
+      <p class="hint">Dane są zapisywane tylko na tym urządzeniu. RTSP nie działa bezpośrednio w przeglądarce — dodamy obsługę pośrednika po ustaleniu modelu kamery.</p>
+      <div class="actions">
+        <button value="cancel">Anuluj</button>
+        <button id="save" value="default">Zapisz</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
